@@ -1,0 +1,27 @@
+TODO    1. Crawl Data ->  2 hour
+            find your user and pass
+            https://www.last.fm/api/show/artist.getInfo
+            http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=Cher&api_key=YOUR_API_KEY&format=json
+            "key address"
+            API-key :      9fe303a1e043be763beb0db7c5128b8b
+            Shared-secret : fbe0b9c7fa4914d1e8334050589cd142
+            registered_to : shayanhaghi
+            api_address :  /Users/shayan/Desktop/Todo/Research/event_sequences_generation/api-lastfm-key
+
+TODO    2. ReTune  designed network  ->  2 hour
+            It should be the dynamic rnn, since we may have sequences with different size  .
+
+TODO    3. Separate test and train -> making decision from which time to do this
+
+            1. step ->  70 % first parts, 30 % last parts > per user
+
+TODO    4. Write Minimal BatchFeeder to Feed every Batch to Rnn.
+            1. Selecting Batch Feeder -> Farajitabar
+
+TODO    5. Write measures -> mean squared error (For Time), Number Of Times.
+            2. Poisson for likelihood.
+
+TODO    6. Writing Cost function ->
+           mean squared error for cost + mean squared error for number of every single session
+
+

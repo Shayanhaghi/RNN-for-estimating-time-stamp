@@ -1,0 +1,46 @@
+TODO :
+        1.check validation of input :
+
+
+
+                            Result  :
+
+
+
+
+
+        2.check validation of output:
+
+
+
+                            Result:
+
+
+
+
+        3.check validation of weight after RNN :
+
+
+
+
+                            Result
+
+
+
+
+
+        change Proposal :
+            1. setting cost to normal:
+                everything goes wrong. cost have been increased,
+
+
+            1. don't using user embedding in input.
+
+            2.
+
+
+
+
+
+part of network structures to be checked:
+    a

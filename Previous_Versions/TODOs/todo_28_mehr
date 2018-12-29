@@ -1,0 +1,11 @@
+1. make fake dataset
+2. feed it
+3. visualize histogram of the weights
+
+
+
+
+for
+    part 1:
+        make fake dataset, save it , load it, check it
+

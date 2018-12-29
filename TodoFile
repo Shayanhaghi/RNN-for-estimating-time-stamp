@@ -1,0 +1,16 @@
+TODO : set cost to poisson.
+
+
+TODO : how does histogram is visualized in Tensorflow?
+       Questions : how frequent does it show changes?.
+       Questions : can we change the frequency ?
+
+TODO : check validation of network structure ?
+
+
+TODO : make graph and all the details visible.
+
+
+TODO: test Cases to write :
+    1. check if the states have been kept ?
+
