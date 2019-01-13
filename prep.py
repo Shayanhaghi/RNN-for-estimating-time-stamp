@@ -15,7 +15,7 @@ def add_list():
     return list1 + list2
 
 
-local_directory = '/Users/shayan/Desktop/Todo/Research/smola_implementation/' \
+local_directory = '/Users/shayan/Desktop/Archive/Research/smola_implementation/' \
                   'lastfm-dataset-1K/userid-timestamp-artid-artname-traid-traname.tsv'
 mll_directory = '/home/shayan/Desktop/javad/lastfm-dataset-1K/userid-timestamp-artid-artname-traid-traname.tsv'
 pushe_directory = '/home/shayan/lastfm-dataset-1K/userid-timestamp-artid-artname-traid-traname.tsv'
@@ -30,10 +30,10 @@ class LoadHeadTest():
         pass
 
     @staticmethod
-    def save_data_head(self):
+    def save_data_head():
         """save head of the data which is load from Last_fm in """
         with open(local_directory) as my_file:
-            head = [next(my_file) for _ in range(100)]
+            head = [next(my_file) for _ in range(1000)]
         with open("./save.p", "wb") as my_file:
             pickle.dump(head, my_file)
 
@@ -110,14 +110,6 @@ def calculate_return_day(yyyymmdd, hhmmss, week):
     return [return_day_number, return_day_name, return_day_hour]
 
 
-COLUMNS = ["userid", "timestamp", "artid", "artname", "traid", "traname"]
-input_data = load_server_input(COLUMNS, mll_directory)
-ITERATION_START = 1
-GAP_THRESHOLD = 19
-NUMBER_OF_INPUT = len(input_data)  # len(inputFile.index) = 19098862
-GAP_SIZE_MAX_VALUE = 200 * 24 * 60  # GAP SIZE MAX
-GAP_SIZE_MIN_VALUE = 61  # GAP SIZE MIN VALUE
-WEEK = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"}
 
 
 def test_empty_session():
@@ -217,5 +209,12 @@ def preprocess():
 # with open('shayanPrep.pk', 'wb') as fi:
 #     # dump your data into the file
 #     pickle.dump(output, fi)
-
-test_empty_session()
+if __name__ == "__main__":
+    COLUMNS = ["userid", "timestamp", "artid", "artname", "traid", "traname"]
+    input_data = load_server_input(COLUMNS, mll_directory)
+    ITERATION_START = 1
+    GAP_THRESHOLD = 19
+    NUMBER_OF_INPUT = len(input_data)  # len(inputFile.index) = 19098862
+    GAP_SIZE_MAX_VALUE = 200 * 24 * 60  # GAP SIZE MAX
+    GAP_SIZE_MIN_VALUE = 61  # GAP SIZE MIN VALUE
+    WEEK = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"}

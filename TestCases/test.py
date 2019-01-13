@@ -1,4 +1,4 @@
 x = "abc"
 y = "edf"
-out = x + y
+out = x + y # string
 print(out[0])

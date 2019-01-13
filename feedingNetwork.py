@@ -25,7 +25,9 @@ class ExtractInfo:
         print("start loading da `ta")
         with open(self.data_address, "rb") as data:
             self.main_data = pickle.load(data)
-
+            print(len(self.main_data))
+            print(len(self.main_data[1]))
+            print(self.main_data[1][1])
         print("data has been loaded.")
 
     def calculate_measures(self):
@@ -70,10 +72,8 @@ class DataAnalysis(ExtractInfo):
         print("start loading data")
         with open(self.data_address, "rb") as data:
             self.main_data = pickle.load(data)
-            # print(len(self.main_data)) ->    992 -> number of users
-            # print(len(self.main_data[1])) ->    907 -> number of session for first user
-            # print(len(self.main_data[1][1])) -> [gap_size(in minutes), 'Day of week', "hour of the day", session Tracks]
-            # session Track"
+            print(len(self.main_data))
+            print(len(self.main_data[1]))
             print(self.main_data[1][1])
             print(type(self.main_data))
             print(self.main_data[1][1])

@@ -2,7 +2,6 @@
 it has been written by AmirShayan Haghipour.
 
 this file contains expected rnn model,
-
 current pep 8 as a standard guide for codding style
 https://legacy.python.org/dev/peps/pep-0008/#class-names
 https://legacy.python.org/dev/peps/pep-0484/
@@ -34,7 +33,7 @@ class RNNModel:
         self.output_real_session_size = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE, GENRE_NUMBER),
                                                        name="ogg")
         # TODO -> random_uniform initializer  (get tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="output_time_real")variable va variable dar )
-        self.user_lstm_state_reference = tf.Variable(tf.random_uniform([USER_NUMBERS, NEURON_NUMBERS], -1.0, 1.0),
+        self.user_lstm_state_reference = tf.Variable(tf.random_uniform([USER_NUMBERS, 2], -1.0, 1.0),
                                                      trainable=True)
         self.input_users = tf.placeholder(tf.int32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="iu")
         self.retrieved_user_states = tf.nn.embedding_lookup(self.user_lstm_state_reference, self.input_users,
@@ -43,7 +42,11 @@ class RNNModel:
         self.input_time = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="it")
         self.log_input_time = tf.log(self.input_time)
         self.log_output_time = tf.log(self.output_real_time)
-    def accessToPlaceHolders(self):
+        self.log_input_session_length = tf.log(self.input_genre_count)
+        self.log_output_session_length = tf.log(self.output_real_session_size)
+
+    def access_place_holders(self):
+        """make access to variable outside class scope"""
         return (self.input_users, self.retrieved_user_states,
                 self.input_genre_count, self.input_time,
                 self.user_lstm_state_reference, self.output_real_time,
@@ -64,7 +67,7 @@ class RNNModel:
         # checking sizes
         print("check sizes :")
         print(expanded_time_input.shape, user_embedding_batch.shape, self.input_genre_count.shape)
-        input2rnn = tf.concat([expanded_time_input, self.input_genre_count], 2,
+        input2rnn = tf.concat([expanded_time_input, self.log_input_session_length, self.retrieved_user_states], 2,
                               name="rnn_input_unrolled")
 
         # TODO product inputs by some values before feeding to RNN
@@ -85,10 +88,7 @@ class RNNModel:
             return lstm_output, lstm_state, state, sum_measure, lstm_state_measure
 
     def time_predictor(self, lstm_outputs):
-        # with tf.variable_scope('FullyConnected'):
-        #     W = tf.get_variable('Wt', [NEURON_NUMBERS, 1])
-        #     b = tf.get_variable('bt', [1], initializer=tf.constant_initializer(0.0))
-        # logits_t = tf.matmul(lstm_outputs, W) + b
+        lstm_outputs
         t1 = tf.layers.dense(lstm_outputs, 100, activation=tf.nn.relu)
         t2 = tf.layers.dense(lstm_outputs, 100, activation=tf.nn.relu)
         time_prediction = tf.layers.dense(t1, 1, name="gap_predictor")
@@ -105,7 +105,7 @@ class RNNModel:
         print(pm2)
 
         real_out1 = tf.reduce_mean(self.log_output_time)
-        real_out2 = tf.reduce_mean(self.output_real_session_size)
+        real_out2 = tf.reduce_mean(self.log_output_session_length)
         return time_prediction_exp, number_prediction_exp, pm1, pm2, real_out1, real_out2
 
     def set_cost(self, time_prediction, number_prediction, name="cost"):
@@ -116,7 +116,7 @@ class RNNModel:
             # l2 = tf.nn.log_poisson_loss(self.output_real_session_size, number_prediction, name="loss2",
             #                             compute_full_loss=True)
             tf.summary.histogram("time of real outputs", self.output_real_time)
-            tf.summary.histogram("Number of count in session", self.output_real_session_size)
+            tf.summary.histogram("Number of count in a session", self.output_real_session_size)
             tf.summary.histogram("generated time histogram", time_prediction)
             tf.summary.histogram("generated count values", number_prediction)
             epsilon = tf.constant(10 ** (-8))
@@ -128,9 +128,9 @@ class RNNModel:
             print(time_normalization)
             time_normalization_mean = tf.reduce_mean(time_normalization)
             print(time_normalization_mean)
-            session_size_normalization = tf.add(v1, self.output_real_session_size)
+            session_size_normalization = tf.add(v1, self.log_output_session_length)
             session_size_normalization_mean = tf.reduce_mean(session_size_normalization)
-            normalized_output_session_size = tf.div(self.output_real_session_size, session_size_normalization_mean)
+            normalized_output_session_size = tf.div(self.log_output_session_length, session_size_normalization_mean)
             normalized_output_time = tf.div(tf.expand_dims(self.log_output_time, -1), time_normalization_mean)
             normalized_time_prediction = tf.div(time_prediction, time_normalization_mean)
             normalized_session_size = tf.div(number_prediction, session_size_normalization_mean)
@@ -144,13 +144,13 @@ class RNNModel:
                 tf.expand_dims(self.log_output_time, -1),
                 time_prediction)
             real_loss_squared_2 = tf.losses.mean_squared_error(
-                number_prediction, self.output_real_session_size
+                number_prediction, self.log_output_session_length
             )
             real_loss_1 = tf.sqrt(real_loss_squared_1)
             real_loss_2 = tf.sqrt(real_loss_squared_2)
 
             tf.summary.scalar("output real time mean", tf.reduce_mean(self.log_output_time))
-            tf.summary.scalar("output real season size", tf.reduce_mean(self.output_real_session_size))
+            tf.summary.scalar("output real season size", tf.reduce_mean(self.log_output_session_length))
             loss = tf.add(tf.reduce_mean(l1), tf.reduce_mean(l2))
             optimization_step = tf.train.AdamOptimizer(1e-3).minimize(loss, name="optimizer2Optimize")
             # optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.002)
@@ -162,7 +162,7 @@ class RNNModel:
 class SimpleRNNPoissonCost(RNNModel):
     def time_predictor(self, lstm_outputs):
         t11 = tf.layers.dense(tf.expand_dims(self.log_input_time, -1), 100)
-        t12 = tf.layers.dense(self.input_genre_count, 100)
+        t12 = tf.layers.dense(self.log_input_session_length, 100)
         trnn1 = tf.layers.dense(lstm_outputs, 100, activation=tf.nn.relu)
         print(t11)
         print(trnn1)
@@ -178,13 +178,13 @@ class SimpleRNNPoissonCost(RNNModel):
         pm1 = tf.reduce_mean(time_prediction_rectified)
         pm2 = tf.reduce_mean(number_of_each_genre_prediction_rectified)
         real_out1 = tf.reduce_mean(self.log_output_time)
-        real_out2 = tf.reduce_mean(self.output_real_session_size)
+        real_out2 = tf.reduce_mean(self.log_output_session_length)
         return time_prediction_rectified, number_of_each_genre_prediction_rectified, pm1, pm2, real_out1, real_out2
 
     def set_cost(self, time_prediction, number_prediction, name="cost"):
         l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.log_output_time, -1), time_prediction, name="loss1",
                                     compute_full_loss=True)
-        l2 = tf.nn.log_poisson_loss(self.output_real_session_size, number_prediction, name="loss2",
+        l2 = tf.nn.log_poisson_loss(self.log_output_session_length, number_prediction, name="loss2",
                                     compute_full_loss=True)
         loss = tf.add(tf.reduce_mean(l1), tf.reduce_mean(l2))
         optimization_step = tf.train.AdamOptimizer(3e-3).minimize(loss, name="optimizer2Optimize")
@@ -195,7 +195,7 @@ class SimpleRNNPoissonCost(RNNModel):
 class RnnMlp(RNNModel):
     def time_predictor(self, lstm_outputs):
         t11 = tf.layers.dense(tf.expand_dims(self.log_input_time, -1), 100)
-        t12 = tf.layers.dense(self.input_genre_count, 100)
+        t12 = tf.layers.dense(self.log_input_session_length, 100)
         trnn1 = tf.layers.dense(lstm_outputs, 100, activation=tf.nn.relu)
 
         t1 = tf.concat([t11, trnn1], axis=-1)
@@ -211,5 +211,5 @@ class RnnMlp(RNNModel):
         pm1 = tf.reduce_mean(time_prediction_exp)
         pm2 = tf.reduce_mean(number_prediction_exp)
         real_out1 = tf.reduce_mean(self.log_output_time)
-        real_out2 = tf.reduce_mean(self.output_real_session_size)
+        real_out2 = tf.reduce_mean(self.log_output_session_length)
         return time_prediction_exp, number_prediction_exp, pm1, pm2, real_out1, real_out2

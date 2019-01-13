@@ -3,10 +3,6 @@ import pandas as pd
 
 COLUMNS = ["userid", "timestamp", "artid", "artname", "traid", "traname"]
 
-
-
-
-
 def load_server_input(columns, directory):
     """load input in server """
     with open(directory) as my_file:
