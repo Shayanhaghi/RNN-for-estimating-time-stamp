@@ -10,7 +10,7 @@ class PreProcessing:
         self.dataFrame = None
         self.read_data_with_pandas()
 
-    # set directory to read data from
+    # set directory to read wrapped_panda_data from
     def set_directory(self, local=False, pushe=True):
         pushe_directory = '/home/shayan/lastfm-dataset-1K/userid-timestamp-artid-artname-traid-traname.tsv'
         server_directory = '/home/shayan/Desktop/javad/lastfm-dataset-1K/userid-timestamp-artid-artname-traid-traname.tsv'

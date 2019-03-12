@@ -1,23 +1,23 @@
 import Rnn
-from feeding_network import BatchFeeder, SameBatchFeeder, ExtendedBatchFeeder
-from Rnn import RnnWithHour, RnnWithMAE, RNNWithExactTime, \
-    SimpleRNNAgain, SimpleRNNWithTruncatedLoss
+from feeding_network import BatchFeeder3D, TestbatchFeeder
+from RNN_Revised import RNNModel
 import tensorflow as tf
 import numpy as np
 
 # setting batch feeder ###
 # Batch Feeder is used to feed wrapped_panda_data to network,
 
-batch_feeder = ExtendedBatchFeeder()
+batch_feeder = BatchFeeder3D()
 batch_feeder.set_user_max_train_max_value()
-print("********-----------------------********")
-batch_feeder.create_batch()
-print("********-----------------------********")
-batch_feeder.create_batch()
-batch_feeder.check_user_data()
+print("I'm Here")
+print("********----------BATCH-------------********")
+
 # setting rnn
-rnn = SimpleRNNWithTruncatedLoss()
-#
+rnn = RNNModel()
+test_feeder = TestbatchFeeder()
+test_feeder.set_user_max_train_max_value()
+print("*******************----- test feeder batch_sizes -----*******************")
+print(test_feeder.print_batch_size())
 rnn_input = rnn.placeholders2rnn()
 # access to placeholders
 input_users, retrieved_user_states, input_genre_count, \
@@ -53,8 +53,6 @@ def config_tensorboard(session):
 
 writer = config_tensorboard(sess)
 merged_summary = tf.summary.merge_all()
-# make a writer #
-
 for i in range(100000):
     input_gap, input_session_length, user_numbers, output_gap, \
     output_session_length, input_session_exact_day, \
@@ -72,10 +70,15 @@ for i in range(100000):
                    rnn.input_exact_time_day: input_session_exact_day,
                    rnn.input_exact_time_hour: input_session_exact_hour,
                    })
+
     last_lstm_state = session_out[2]
+
     batch_feeder.set_states(last_lstm_state)
     # analysis : set state is called in every step of program
     if i % 100 == 0:
+        input_gap, input_session_length, user_numbers, output_gap, \
+        output_session_length, input_session_exact_day, \
+        input_session_exact_hour = batch_feeder.create_batch()
         s = sess.run([merged_summary, pm1, pm2, g1, g2, real_loss_1, real_loss_2],
                      feed_dict={input_time: input_gap,
                                 input_users: user_numbers,
@@ -86,8 +89,8 @@ for i in range(100000):
                                 state[1]: state2Feed[1],
                                 rnn.input_exact_time_day: input_session_exact_day,
                                 rnn.input_exact_time_hour: input_session_exact_hour,
-                                })
-
+                                }
+                     )
         writer.add_summary(s[0], i)
         print("iteration ", i)
         print("loss mean : ", session_out[1])
@@ -95,3 +98,27 @@ for i in range(100000):
         print("estimated gap: ", s[1], "estimated session counter", s[2])
         print("real gap: ", s[3], "real session counter", s[4])
         # print("loss1 :", loss[1])
+    if i % 100 == 0:
+        test_feeder.reset_testing()
+        MAE1 = []
+        MAE2 = []
+        while test_feeder.next_batch_is_available() == True:
+            input_gap, input_session_length, user_numbers, output_gap, \
+            output_session_length, input_session_exact_day, \
+            input_session_exact_hour = test_feeder.create_batch()
+            s = sess.run([merged_summary, pm1, pm2, g1, g2, real_loss_1, real_loss_2],
+                         feed_dict={input_time: input_gap,
+                                    input_users: user_numbers,
+                                    input_genre_count: input_session_length,
+                                    output_real_counter: output_session_length,
+                                    output_real_time: output_gap,
+                                    state[0]: state2Feed[0],
+                                    state[1]: state2Feed[1],
+                                    rnn.input_exact_time_day: input_session_exact_day,
+                                    rnn.input_exact_time_hour: input_session_exact_hour,
+                                    })
+            MAE1.append(s[5])
+            MAE2.append(s[6])
+        print("iteration ", i)
+        print("MAE 1", np.array(MAE1).mean(),
+              "MAE 2", np.array(MAE2).mean())

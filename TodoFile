@@ -1,6 +1,106 @@
 
 
 
+## 22 esfand procedure:
+    check initialization in system performance.
+    check gradient flow (it should be only the last charcter)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 30 bahman todo
+ 1. feed data to network
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#11 Bahman TODO list:
+
+1. search Farajitabar's code for hawks and poisson process implementation,
+2. search for library of hawks and poisson process implementation,
+identify 2 phase of implementation
+1. parameter learning,
+2. measure of MAE using parameter.
+
+
+
+
+1. why MAE is bad in data -> visualize what is bad,
+   how this measure is weak in your implementation? ->
+   locate what happens in data, with this measure which part of
+   data is estimated in a worse manner.
+
+
+   is this beacuse of the outlier ?
+   if we lower the gradient of outliers, is this helpful or not ?
+
+
+
+
+2. should we worry about learning?
+   visualize learning in Tensorflow. -> report it. analyze it,
+   check analysis with Dr
+
+
+
+
+
+previous ones
+TODO:  load weight directly in tensorflow
+TODO : visualize data gap !!!
+TODO : multiply weight to the variable in tensorflow
+TODO :
+
+
+
+
+
 
 TODO : set cost to poisson.
 

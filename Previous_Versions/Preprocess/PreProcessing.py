@@ -132,5 +132,5 @@ def preProcessing():
 a = preProcessing()
 print("END")
 with open('PreProcessingOutput.pk', 'wb') as fi:
-    # dump your data into the file
+    # dump your wrapped_panda_data into the file
     pickle.dump(a, fi)
