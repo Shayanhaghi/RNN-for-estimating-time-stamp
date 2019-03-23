@@ -241,7 +241,7 @@ class BatchFeeder:
         # batch_size of the network
         self.dataSize = len(self.data)
         self.current_selected_users = []
-        self.step_in_time = self.gap_vector_size + self.UNROLL_SIZE
+        self.step_in_time = self.UNROLL_SIZE
         self.HIDDDEN_LSTM_SIZE = 80
         self.user_states = (np.zeros([self.batch_size, self.HIDDDEN_LSTM_SIZE]),
                             np.zeros([self.batch_size, self.HIDDDEN_LSTM_SIZE]))
@@ -303,10 +303,10 @@ class BatchFeeder:
 
     def move_forward_current_users_index(self):
         for user in set(self.current_selected_users):
-            print("", set(self.current_selected_users),)
+            print("", set(self.current_selected_users))
             self.users_feed_index[user] = self.users_feed_index[user] + self.step_in_time
 
-    def update_user_index(self):
+    def check_user_is_finished(self):
         for user in self.current_selected_users:
             # if we reach the end of the sequence we come back to starting point
             #
@@ -315,7 +315,7 @@ class BatchFeeder:
 
     def create_batch(self):
         self.choose_users()
-        self.update_user_index()
+        self.check_user_is_finished()
         input_value = [self.data[user_number][self.users_feed_index[user_number]:
                                               (self.users_feed_index[user_number])
                                               + self.UNROLL_SIZE] for user_number
@@ -352,7 +352,7 @@ class ExtendedBatchFeeder(BatchFeeder):
 
     def create_batch(self):
         self.choose_users()
-        self.update_user_index()
+        self.check_user_is_finished()
         input_value = [self.data[user_number][self.users_feed_index[user_number]:
                                               (self.users_feed_index[user_number])
                                               + self.UNROLL_SIZE]
@@ -477,14 +477,22 @@ class BatchFeeder3D(ExtendedBatchFeeder):
     def __init__(self):
         super().__init__()
 
-    def update_user_index(self):
+    def check_user_is_finished(self):
         for user in self.current_selected_users:
             if (self.users_feed_index[user] + self.UNROLL_SIZE * self.gap_vector_size) >= self.user_train_max[user]:
                 self.users_feed_index[user] = 0
 
+
+    def move_forward_current_users_index(self):
+        for user in set(self.current_selected_users):
+            print("", set(self.current_selected_users))
+            self.users_feed_index[user] = self.users_feed_index[user] + self.step_in_time
+
+
+
     def create_batch(self):
+        self.check_user_is_finished()
         self.choose_users()
-        self.update_user_index()
         input_values = [[self.data[user_number][k + self.users_feed_index[user_number]:
                                                 k + self.users_feed_index[user_number] +
                                                 self.gap_vector_size]
@@ -520,7 +528,7 @@ class BatchFeeder3D(ExtendedBatchFeeder):
         pass
 
 
-class TestbatchFeeder(BatchFeeder3D):
+class TestBatchFeeder(BatchFeeder3D):
 
     def __init__(self):
         super().__init__()
@@ -531,7 +539,7 @@ class TestbatchFeeder(BatchFeeder3D):
         self.current_selected_users = [self.current_test_user] * self.batch_size
 
     def next_batch_is_available(self):
-        if self.testing_is_finished == True:
+        if self.testing_is_finished:
             return False
         else:
             return True
@@ -548,11 +556,11 @@ class TestbatchFeeder(BatchFeeder3D):
                   self.user_train_max[user], "difference : ", self.user_max[user] - self.user_train_max[user])
 
     def create_batch(self):
+        self.check_user_is_finished()
         self.choose_users()
-        self.update_user_index()
-        print("user number :       ", self.current_selected_users[0],
-              "user index to feed :", self.users_feed_index[self.current_selected_users[0]])
-
+        print("user number :       ", self.current_test_user,
+              "user index to feed :", self.users_feed_index[self.current_test_user],
+              "max of current user : ",self.user_max[self.current_test_user])
         input_values = [[self.data[user_number][k + self.users_feed_index[user_number]:
                                                 k + self.users_feed_index[user_number] +
                                                 self.gap_vector_size]
@@ -580,13 +588,21 @@ class TestbatchFeeder(BatchFeeder3D):
                output_gap_batch, output_session_size_batch, \
                input_session_exact_day, input_session_exact_hour
 
-    def update_user_index(self):
-        for user in self.current_selected_users:
-            if (self.users_feed_index[user] + self.UNROLL_SIZE * self.gap_vector_size) >= self.user_max[user]:
-                value = self.increment_user_id()
-                if value == 1:
-                    print("testing is finished !")
-                    self.testing_is_finished = True
+    def check_user_is_finished(self):
+        if self.users_feed_index[self.current_test_user] + self.UNROLL_SIZE \
+                + self.gap_vector_size + 1 >= self.user_max[self.current_test_user]:
+            value = self.increment_user_id_test()
+            if value == 1:
+                print("testing is finished !")
+                self.reset_testing()
+                self.testing_is_finished = True
+
+    def increment_user_id_test(self):
+        if self.current_test_user == 20:
+            return 1
+        else:
+            self.current_test_user += 1
+            return 0
 
     def increment_user_id(self):
         if self.current_test_user == self.dataSize:

@@ -1,5 +1,5 @@
-import Rnn
-from feeding_network import BatchFeeder3D, TestbatchFeeder
+# import Rnn
+from feeding_network import BatchFeeder3D, TestBatchFeeder
 from RNN_Revised import RNNModel
 import tensorflow as tf
 import numpy as np
@@ -14,10 +14,10 @@ print("********----------BATCH-------------********")
 
 # setting rnn
 rnn = RNNModel()
-test_feeder = TestbatchFeeder()
+test_feeder = TestBatchFeeder()
 test_feeder.set_user_max_train_max_value()
-print("*******************----- test feeder batch_sizes -----*******************")
-print(test_feeder.print_batch_size())
+# print("*******************----- test feeder batch_sizes -----*******************")
+# print(test_feeder.print_batch_size())
 rnn_input = rnn.placeholders2rnn()
 # access to placeholders
 input_users, retrieved_user_states, input_genre_count, \
@@ -28,20 +28,6 @@ lstm_output_value, lstm_states, state, sum_measure, lstm_state_measure = rnn.set
 time_prediction, number_of_each_genre_prediction, pm1, pm2, g1, g2 = rnn.time_predictor(lstm_output_value)
 optimization_step, sumOfLoss, real_loss_1, real_loss_2 = rnn.set_cost(time_prediction, number_of_each_genre_prediction)
 
-sess = tf.InteractiveSession()
-sess.run(tf.global_variables_initializer())
-sess.run(tf.local_variables_initializer())
-
-# Some variables to have in the scope.
-batch_size = 64
-
-
-# input_gap = np.zeros([batch_size, unroll_size])
-# user_numbers = np.ones([batch_size, unroll_size])
-# output_gap = np.zeros([batch_size, unroll_size])
-# input_session_length = np.zeros([batch_size, unroll_size, 1])
-# output_session_length = np.zeros([batch_size, unroll_size, 1])
-
 
 def config_tensorboard(session):
     """make a writer"""
@@ -49,6 +35,27 @@ def config_tensorboard(session):
     writer = tf.summary.FileWriter(log_directory)
     writer.add_graph(session.graph)
     return writer
+
+
+def config_to_cpu():
+    config = tf.ConfigProto(device_count={'GPU': 0})
+    session = tf.Session(config=config)
+    return session
+
+
+sess = tf.InteractiveSession()
+# sess = config_to_cpu()
+sess.run(tf.global_variables_initializer())
+sess.run(tf.local_variables_initializer())
+
+# Some variables to have in the scope.
+batch_size = 64
+
+# input_gap = np.zeros([batch_size, unroll_size])
+# user_numbers = np.ones([batch_size, unroll_size])
+# output_gap = np.zeros([batch_size, unroll_size])
+# input_session_length = np.zeros([batch_size, unroll_size, 1])
+# output_session_length = np.zeros([batch_size, unroll_size, 1])
 
 
 writer = config_tensorboard(sess)
@@ -98,7 +105,7 @@ for i in range(100000):
         print("estimated gap: ", s[1], "estimated session counter", s[2])
         print("real gap: ", s[3], "real session counter", s[4])
         # print("loss1 :", loss[1])
-    if i % 100 == 0:
+    if i % 1000 == 900:
         test_feeder.reset_testing()
         MAE1 = []
         MAE2 = []
