@@ -102,7 +102,6 @@ class RNNModel:
     def time_predictor(self, lstm_outputs):
         t11 = tf.layers.dense(self.log_input_time, 100)
         t12 = tf.layers.dense(self.log_input_session_length, 100)
-        # TODO check what happens if trnn1 and trnn2 whould be same.
         trnn1 = tf.layers.dense(lstm_outputs, 100, activation=tf.nn.relu)
 
         t1 = tf.concat([t11, trnn1], axis=-1)
@@ -134,19 +133,8 @@ class RNNModel:
             tf.summary.histogram("Number of count in a session", self.output_real_session_size)
             tf.summary.histogram("generated time histogram", time_prediction)
             tf.summary.histogram("generated count values", number_prediction)
-
-            normalized_time_prediction, normalized_output_time, \
-            normalized_session_size, normalized_output_session_size = \
-                self.normalize_variable(time_prediction, number_prediction,
+            self.normalize_variable(time_prediction, number_prediction,
                                         self.log_output_time, self.log_output_session_length)
-
-            # l1 = tf.losses.mean_squared_error(normalized_output_time,
-            #                                   normalized_time_prediction)
-
-            # l2 = tf.losses.mean_squared_error(normalized_output_session_size,
-            #                                   normalized_session_size)
-            print(time_prediction)
-            print(number_prediction)
             rl1 = tf.losses.mean_squared_error(
                 self.log_output_time, time_prediction)
             rl2 = tf.losses.mean_squared_error(

@@ -89,9 +89,9 @@ for i in range(100000):
                                 })
 
         writer.add_summary(s[0], i)
-        print("iteration ", i)
+        print("iteration : ", i)
         print("loss mean : ", session_out[1])
-        print("MAE 1", s[5], "MAE 2", s[6])
+        print("MAE 1 : ", s[5], "MAE 2 : ", s[6])
         print("estimated gap: ", s[1], "estimated session counter", s[2])
         print("real gap: ", s[3], "real session counter", s[4])
         # print("loss1 :", loss[1])
