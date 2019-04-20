@@ -29,7 +29,7 @@ numpy.random.seed(SEED)
 class RNNModel:
     def __init__(self):
         # self.output_pl = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="output_time_real")
-        # self.output_real_time = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="output_time_real")
+        # self.time_target = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="output_time_real")
         self.output_real_time = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="output_time_real")
         self.output_real_session_size = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE, GENRE_NUMBER),
                                                        name="ogg")
@@ -60,7 +60,7 @@ class RNNModel:
         assert (user_embedding_reference.shape == (USER_NUMBERS, USER_VECTOR_SIZE))
         user_embedding_batch = tf.nn.embedding_lookup(user_embedding_reference, self.input_users,
                                                       name="user_embedding_batch")
-        # transposed_genre = tf.transpose(input_genre_count, (1, 2, 0), name="fed_genre_count")
+        # transposed_genre = tf.transpose(input_session_length, (1, 2, 0), name="fed_genre_count")
         expanded_time_input = tf.expand_dims(self.log_input_time, -1)
         # print(self.input_time)
         # print(expanded_time_input)
@@ -68,7 +68,7 @@ class RNNModel:
         # checking sizes
         print("check sizes :")
         retrieved_user_state = tf.layers.dense(self.retrieved_user_states, 4, activation=tf.nn.relu)
-        # self.log_input_session_length =
+        # self.input_session_length_log =
         # expanded_time_input =
         print(expanded_time_input.shape, user_embedding_batch.shape, self.input_genre_count.shape)
         input2rnn = tf.concat([expanded_time_input, self.log_input_session_length, retrieved_user_state], 2,
@@ -114,9 +114,9 @@ class RNNModel:
     def set_cost(self, time_prediction, number_prediction, name="cost"):
         with tf.name_scope(name):
             # l1 = tf.losses.mean_squared_error(tf.expand_dims(self.output_time_real, -1), time_prediction)
-            # l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.output_real_time, -1), time_prediction, name="loss1",
+            # l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.time_target, -1), time_prediction, name="loss1",
             #                             compute_full_loss=True)
-            # l2 = tf.nn.log_poisson_loss(self.output_real_session_size, number_prediction, name="loss2",
+            # l2 = tf.nn.log_poisson_loss(self.session_length_target, number_prediction, name="loss2",
             #                             compute_full_loss=True)
             tf.summary.histogram("time of real outputs", self.output_real_time)
             tf.summary.histogram("Number of count in a session", self.output_real_session_size)
@@ -225,7 +225,7 @@ class RNNWithInitializationOfWeights(RnnMlp):
         self.output_real_session_size = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE, GENRE_NUMBER),
                                                        name="ogg")
         # TODO -> random_uniform initializer  (get tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="output_time_real")variable va variable dar )
-        # self.user_lstm_state_reference = tf.Variable(
+        # self.users_reference = tf.Variable(
         #     tf.random_uniform(numpy.load("user_embedding_matrix_sorted.npy"), -1.0, 1.0),
         #     trainable=False)
         self.user_lstm_state_reference = tf.Variable(
@@ -249,7 +249,7 @@ class RnnWithHour(RnnMlp):
         self.output_real_session_size = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE, GENRE_NUMBER),
                                                        name="ogg")
         # TODO -> random_uniform initializer  (get tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="output_time_real")variable va variable dar )
-        # self.user_lstm_state_reference = tf.Variable(
+        # self.users_reference = tf.Variable(
         #     tf.random_uniform(numpy.load("user_embedding_matrix_sorted.npy"), -1.0, 1.0),
         #     trainable=False)
         self.user_lstm_state_reference = tf.Variable(
@@ -290,9 +290,9 @@ class RnnWithMAE(RnnMlp):
     def set_cost(self, time_prediction, number_prediction, name="cost"):
         with tf.name_scope(name):
             # l1 = tf.losses.mean_squared_error(tf.expand_dims(self.output_time_real, -1), time_prediction)
-            # l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.output_real_time, -1), time_prediction, name="loss1",
+            # l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.time_target, -1), time_prediction, name="loss1",
             #                             compute_full_loss=True)
-            # l2 = tf.nn.log_poisson_loss(self.output_real_session_size, number_prediction, name="loss2",
+            # l2 = tf.nn.log_poisson_loss(self.session_length_target, number_prediction, name="loss2",
             #                             compute_full_loss=True)
             tf.summary.histogram("time of real outputs", self.output_real_time)
             tf.summary.histogram("Number of count in a session", self.output_real_session_size)
@@ -339,10 +339,10 @@ class RNNWithExactTime(RnnWithMAE):
     def __init__(self):
         super().__init__()
         # self.output_pl = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="output_time_real")
-        # self.output_real_time = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="output_time_real")
+        # self.time_target = tf.placeholder(tf.float32, shape=(BATCH_SIZE, UNROLLED_SIZE), name="output_time_real")
         self.input_exact_time_hour = tf.placeholder(tf.int32, shape=(BATCH_SIZE, UNROLLED_SIZE))
         self.input_exact_time_day = tf.placeholder(tf.int32, shape=(BATCH_SIZE, UNROLLED_SIZE))
-        # self.input_exact_time_in_week = self.input_exact_time_day * 7 + self.input_exact_time_hour
+        # self.input_exact_time_in_week = self.exact_day * 7 + self.exact_hour
         self.exact_hour_in_week = self.input_exact_time_day * tf.constant(24, tf.int32) + self.input_exact_time_day
 
     def placeholders2rnn(self):
@@ -356,7 +356,7 @@ class RNNWithExactTime(RnnWithMAE):
                                                       name="user_embedding_batch")
         hour_in_week_embedding_batch = tf.nn.embedding_lookup(hour_in_week, self.exact_hour_in_week,
                                                               name="week_times")
-        # transposed_genre = tf.transpose(input_genre_count, (1, 2, 0), name="fed_genre_count")
+        # transposed_genre = tf.transpose(input_session_length, (1, 2, 0), name="fed_genre_count")
         expanded_time_input = tf.expand_dims(self.log_input_time, -1)
         # print(self.input_time)
         # print(expanded_time_input)
@@ -365,7 +365,7 @@ class RNNWithExactTime(RnnWithMAE):
         print("check sizes :")
         retrieved_user_state = tf.layers.dense(self.retrieved_user_states, 4, activation=tf.nn.relu)
         hour_of_week = tf.layers.dense(hour_in_week_embedding_batch, 4, activation=tf.nn.relu)
-        # self.log_input_session_length =
+        # self.input_session_length_log =
         # expanded_time_input =
         print(expanded_time_input.shape, user_embedding_batch.shape, self.input_genre_count.shape)
         input2rnn = tf.concat([
@@ -379,9 +379,9 @@ class RNNWithExactTime(RnnWithMAE):
     def set_cost(self, time_prediction, number_prediction, name="cost"):
         with tf.name_scope(name):
             # l1 = tf.losses.mean_squared_error(tf.expand_dims(self.output_time_real, -1), time_prediction)
-            # l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.output_real_time, -1), time_prediction, name="loss1",
+            # l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.time_target, -1), time_prediction, name="loss1",
             #                             compute_full_loss=True)
-            # l2 = tf.nn.log_poisson_loss(self.output_real_session_size, number_prediction, name="loss2",
+            # l2 = tf.nn.log_poisson_loss(self.session_length_target, number_prediction, name="loss2",
             #                             compute_full_loss=True)
             tf.summary.histogram("time of real outputs", self.output_real_time)
             tf.summary.histogram("Number of count in a session", self.output_real_session_size)
@@ -442,9 +442,9 @@ class SimpleRNNWithTruncatedLoss(SimpleRNNAgain):
     def set_cost(self, time_prediction, number_prediction, name="cost"):
         with tf.name_scope(name):
             # l1 = tf.losses.mean_squared_error(tf.expand_dims(self.output_time_real, -1), time_prediction)
-            # l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.output_real_time, -1), time_prediction, name="loss1",
+            # l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.time_target, -1), time_prediction, name="loss1",
             #                             compute_full_loss=True)
-            # l2 = tf.nn.log_poisson_loss(self.output_real_session_size, number_prediction, name="loss2",
+            # l2 = tf.nn.log_poisson_loss(self.session_length_target, number_prediction, name="loss2",
             #                             compute_full_loss=True)
             tf.summary.histogram("time of real outputs", self.output_real_time)
             tf.summary.histogram("Number of count in a session", self.output_real_session_size)

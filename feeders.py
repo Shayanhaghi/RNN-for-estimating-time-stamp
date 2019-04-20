@@ -220,26 +220,30 @@ class BatchFeeder:
     """Feeding batch to network"""
 
     def __init__(self):
-        self.UNROLL_SIZE = 16
+        self.UNROLL_SIZE = 64
         self.data = []
         self.user_number = 0
-        self.gap_vector_size = 16
+        self.input_vector_size = 16
         self.load_data()
-        self.users_feed_index = np.zeros([1000], int)
+        self.number_of_users = 1000
+        self.users_feed_index = np.zeros([self.number_of_users], int)
         # user current number of index of start of the time
-        self.user_max = np.zeros([1000], int)
+        self.users_max_data_index = np.zeros([1000], int)
 
-        self.user_current_test_data_index = np.zeros([1000], int)
+        self.user_current_test_data_index = np.zeros([self.number_of_users], int)
         # maximum valid time index for wrapped_panda_data for each user
-        self.user_train_max = np.zeros([1000], int)
+        self.user_train_max = np.zeros([self.number_of_users], int)
         #
         self.train_test_split_rate = 0.8
         # if train_test_split = 0.8 : end 20% of wrapped_panda_data used for test
         # and 80% of first part of wrapped_panda_data is used for training
 
-        self.batch_size = 64
         # batch_size of the network
-        self.dataSize = len(self.data)
+        self.batch_size = 64
+        # user is in last feed
+        self.user_is_in_last = np.zeros([self.number_of_users], bool)
+
+        self.data_size = len(self.data)
         self.current_selected_users = []
         self.step_in_time = self.UNROLL_SIZE
         self.HIDDDEN_LSTM_SIZE = 80
@@ -252,11 +256,11 @@ class BatchFeeder:
     def __init__(self, hidden_lstm_size, batch_size, unrolled_size, train_test_split_rate):
         self.UNROLL_SIZE = 16
         self.data = []
-        self.user_number = 0
+        self.users_indices = 0
         self.load_data()
         self.users_feed_index = np.zeros([1000], int)
         # user current number of index of start of the time
-        self.user_max = np.zeros([1000], int)
+        self.users_max_data_index = np.zeros([1000], int)
         # maximum valid time index for wrapped_panda_data for each user
         self.user_train_max = np.zeros([1000], int)
         #
@@ -266,7 +270,7 @@ class BatchFeeder:
 
         self.batch_size = batch_size
         # batch_size of the network
-        self.dataSize = len(self.data)
+        self.data_size = len(self.data)
         self.current_selected_users = []
         self.step_in_time = unrolled_size
         self.HIDDDEN_LSTM_SIZE = hidden_lstm_size
@@ -286,18 +290,18 @@ class BatchFeeder:
     def set_user_max_train_max_value(self):
         """ set matrix of max_value and train_max_index for each user """
         for user_index, user_sessions in enumerate(self.data):
-            self.user_max[user_index] = int(user_sessions.shape[0])
+            self.users_max_data_index[user_index] = int(user_sessions.shape[0])
             self.user_train_max[user_index] = int(user_sessions.shape[0] * 0.8)
-            # print(self.user_max[1:10])
+            # print(self.users_max_data_index[1:10])
             # print(self.user_train_max[1:10])
 
     def choose_users(self):
         """self.data size is very important """
-        self.current_selected_users = np.random.randint(0, self.dataSize, self.batch_size)
+        self.current_selected_users = np.random.randint(0, self.data_size, self.batch_size)
         # print(self.current_selected_users)
 
     def check_user_data(self):
-        # print(self.data[user_number][0][0] for user_number in self.current_selected_users)
+        # print(self.data[users_indices][0][0] for users_indices in self.current_selected_users)
         print(self.data[0:10][1][0])
         print(self.current_selected_users)
 
@@ -306,7 +310,7 @@ class BatchFeeder:
             print("", set(self.current_selected_users))
             self.users_feed_index[user] = self.users_feed_index[user] + self.step_in_time
 
-    def check_user_is_finished(self):
+    def update_feeding_index(self):
         for user in self.current_selected_users:
             # if we reach the end of the sequence we come back to starting point
             #
@@ -315,7 +319,7 @@ class BatchFeeder:
 
     def create_batch(self):
         self.choose_users()
-        self.check_user_is_finished()
+        self.update_feeding_index()
         input_value = [self.data[user_number][self.users_feed_index[user_number]:
                                               (self.users_feed_index[user_number])
                                               + self.UNROLL_SIZE] for user_number
@@ -352,7 +356,7 @@ class ExtendedBatchFeeder(BatchFeeder):
 
     def create_batch(self):
         self.choose_users()
-        self.check_user_is_finished()
+        self.update_feeding_index()
         input_value = [self.data[user_number][self.users_feed_index[user_number]:
                                               (self.users_feed_index[user_number])
                                               + self.UNROLL_SIZE]
@@ -476,56 +480,88 @@ class FakeFeeder(BatchFeeder):
 class BatchFeeder3D(ExtendedBatchFeeder):
     def __init__(self):
         super().__init__()
+        self.users_lstm_states_c = None
+        self.users_lstm_states_h = None
+        self.last_lstm_state_c = None
+        self.last_lstm_state_h = None
+        self.step_in_time = self.UNROLL_SIZE
+        self.initialize_users_state()
 
-    def check_user_is_finished(self):
+    def initialize_users_state(self):
+        self.users_lstm_states_c = np.zeros([self.number_of_users, self.HIDDDEN_LSTM_SIZE])
+        self.users_lstm_states_h = np.zeros([self.number_of_users, self.HIDDDEN_LSTM_SIZE])
+        self.last_lstm_state_c = np.zeros([self.number_of_users, self.HIDDDEN_LSTM_SIZE])
+        self.last_lstm_state_h = np.zeros([self.number_of_users, self.HIDDDEN_LSTM_SIZE])
+
+    def set_states(self, lstm_states_c, lstm_states_h):
+
+        for lstm_state_c, lstm_state_h, user_number in zip(lstm_states_c, lstm_states_h, self.current_selected_users):
+            self.users_lstm_states_c[user_number] = lstm_state_c
+            self.users_lstm_states_h[user_number] = lstm_state_h
+
+    def get_states(self):
+        selected_states_c = np.array([self.users_lstm_states_c[user_number][:] for user_number in self.current_selected_users])
+        selected_states_h = np.array([self.users_lstm_states_h[user_number][:] for user_number in self.current_selected_users])
+        return selected_states_c, selected_states_h
+
+    def save_last_lstm_state(self, user):
+        self.last_lstm_state_c[user] = self.users_lstm_states_c[user]
+        self.last_lstm_state_h[user] = self.users_lstm_states_h[user]
+
+    def get_last_lstm_state(self):
+        return self.last_lstm_state_c, self.last_lstm_state_h
+
+    def update_feeding_index(self):
         for user in self.current_selected_users:
-            if (self.users_feed_index[user] + self.UNROLL_SIZE * self.gap_vector_size) >= self.user_train_max[user]:
+            if (self.users_feed_index[user] + self.UNROLL_SIZE + self.input_vector_size) >= self.user_train_max[user]:
+                self.save_last_lstm_state(user)
                 self.users_feed_index[user] = 0
-
+                # set start_values to 0
+                self.users_lstm_states_c[user] = 0
+                self.users_lstm_states_h[user] = 0
 
     def move_forward_current_users_index(self):
         for user in set(self.current_selected_users):
-            print("", set(self.current_selected_users))
             self.users_feed_index[user] = self.users_feed_index[user] + self.step_in_time
 
-
-
     def create_batch(self):
-        self.check_user_is_finished()
+        self.update_feeding_index()
         self.choose_users()
         input_values = [[self.data[user_number][k + self.users_feed_index[user_number]:
                                                 k + self.users_feed_index[user_number] +
-                                                self.gap_vector_size]
+                                                self.input_vector_size]
                          for k in range(self.UNROLL_SIZE)] for user_number in self.current_selected_users]
 
+        # single value is used as an output batch
         output_values = [[self.data[user_number][k + self.users_feed_index[user_number] +
-                                                 self.gap_vector_size:
+                                                 self.input_vector_size:
                                                  k + self.users_feed_index[user_number] +
-                                                 + self.gap_vector_size + 1]
+                                                 + self.input_vector_size + 1]
                           for k in range(self.UNROLL_SIZE)] for user_number in self.current_selected_users]
         input_placeholder = np.array(input_values)
         output_placeholder = np.array(output_values)
-        self.move_index()
-        user_numbers = input_placeholder[:, :, :, 0]
+        self.move_forward_current_users_index()
+        used_index = 0
+        user_numbers = input_placeholder[:, :, used_index, 0]
         input_gap_batch = input_placeholder[:, :, :, 1]  # keep [Batch, Unrolled, vector_size,get gap_size]
 
         input_session_size_batch = input_placeholder[:, :, :, 2]
         output_gap_batch = output_placeholder[:, :, :, 1]  # keep [Batch. Unrolled_size,vector_Size, get gap_Size]
         # in this case vector_Size is 1
-
         output_session_size_batch = output_placeholder[:, :, :, 2]
-        input_session_exact_day = input_placeholder[:, :, :, 3]
-        input_session_exact_hour = input_placeholder[:, :, :, 4]
+        input_session_exact_day = input_placeholder[:, :, used_index, 3]
+        input_session_exact_hour = input_placeholder[:, :, used_index, 4]
+        """
+        > print("shapes :", user_numbers.shape, input_session_exact_day.shape, input_session_exact_hour.shape)
+        shapes : (64, 16) (64, 16) (64, 16)
+        """
         return input_gap_batch, input_session_size_batch, user_numbers, \
                output_gap_batch, output_session_size_batch, \
                input_session_exact_day, input_session_exact_hour
 
     def create_user_test(self):
-        for user_number in range(self.dataSize):
+        for user_number in range(self.data_size):
             pass
-
-    def move_index(self):
-        pass
 
 
 class TestBatchFeeder(BatchFeeder3D):
@@ -538,75 +574,105 @@ class TestBatchFeeder(BatchFeeder3D):
     def choose_users(self):
         self.current_selected_users = [self.current_test_user] * self.batch_size
 
-    def next_batch_is_available(self):
-        if self.testing_is_finished:
-            return False
-        else:
-            return True
-
     def reset_testing(self):
         self.testing_is_finished = False
         self.current_test_user = 0
-        for user in range(self.dataSize):
-            self.users_feed_index[user] = self.user_train_max[user]
+        for user in range(self.data_size):
+            self.users_feed_index[user] = self.user_train_max[user] - self.UNROLL_SIZE
+
+    def set_testing(self):
+        self.reset_testing()
 
     def print_batch_size(self):
-        for user in range(self.dataSize):
-            print("user : ", user, "batch size : ", self.user_max[user], "train max : ",
-                  self.user_train_max[user], "difference : ", self.user_max[user] - self.user_train_max[user])
+        for user in range(self.data_size):
+            print("user : ", user, "batch size : ", self.users_max_data_index[user], "train max : ",
+                  self.user_train_max[user], "difference : ", self.users_max_data_index[user] - self.user_train_max[user])
 
-    def create_batch(self):
-        self.check_user_is_finished()
-        self.choose_users()
+    def print_user_current_index_max(self):
         print("user number :       ", self.current_test_user,
               "user index to feed :", self.users_feed_index[self.current_test_user],
-              "max of current user : ",self.user_max[self.current_test_user])
+              "current max user: ", self.users_max_data_index[self.current_test_user])
+
+    def __get_input_output_data(self):
         input_values = [[self.data[user_number][k + self.users_feed_index[user_number]:
                                                 k + self.users_feed_index[user_number] +
-                                                self.gap_vector_size]
+                                                self.input_vector_size]
                          for k in range(self.UNROLL_SIZE)] for user_number in self.current_selected_users]
         output_values = [[self.data[user_number][k + self.users_feed_index[user_number] +
-                                                 self.gap_vector_size:
+                                                 self.input_vector_size:
                                                  k + self.users_feed_index[user_number] +
-                                                 + self.gap_vector_size + 1]
+                                                 + self.input_vector_size + 1]
                           for k in range(self.UNROLL_SIZE)] for user_number in self.current_selected_users]
-        input_placeholder = np.array(input_values)
-        output_placeholder = np.array(output_values)
+        input_values = np.array(input_values)
+        output_values = np.array(output_values)
+        return input_values, output_values
+
+    def next_batch_is_avaialbe(self, istest=1):
+        is_finished = self.update_feeding_index(istest)  # check if user_data is available if it is
+        if is_finished:
+            return 0
+        else:
+            return 1
+
+    def set_lstm_states(self, last_lstm_state_c, last_lstm_state_h):
+        self.users_lstm_states_c = last_lstm_state_c
+        self.users_lstm_states_h = last_lstm_state_h
+
+    def __check_is_finished(self):
+        if self.testing_is_finished:
+            raise Exception("test is finished !! reset testing for more batch")
+
+    def create_batch(self, print_user_index=0):
+        self.__check_is_finished()
+        self.choose_users()
+        if print_user_index:
+            self.print_user_current_index_max()
+
+        input_placeholder, output_placeholder = self.__get_input_output_data()
         self.move_forward_current_users_index()
-
-        user_numbers = input_placeholder[:, :, :, 0]
+        used_index = 0
+        user_numbers = input_placeholder[:, :, used_index, 0]
         input_gap_batch = input_placeholder[:, :, :, 1]  # keep [Batch, Unrolled, vector_size,get gap_size]
-
         input_session_size_batch = input_placeholder[:, :, :, 2]
         output_gap_batch = output_placeholder[:, :, :, 1]  # keep [Batch. Unrolled_size,vector_Size, get gap_Size]
-        # in this case vector_Size is 1
-
         output_session_size_batch = output_placeholder[:, :, :, 2]
-        input_session_exact_day = input_placeholder[:, :, :, 3]
-        input_session_exact_hour = input_placeholder[:, :, :, 4]
+        input_session_exact_day = input_placeholder[:, :, used_index, 3]
+        input_session_exact_hour = input_placeholder[:, :, used_index, 4]
         return input_gap_batch, input_session_size_batch, user_numbers, \
                output_gap_batch, output_session_size_batch, \
                input_session_exact_day, input_session_exact_hour
 
-    def check_user_is_finished(self):
+    def update_feeding_index(self, is_test=1, validation_number=20):
         if self.users_feed_index[self.current_test_user] + self.UNROLL_SIZE \
-                + self.gap_vector_size + 1 >= self.user_max[self.current_test_user]:
-            value = self.increment_user_id_test()
-            if value == 1:
-                print("testing is finished !")
-                self.reset_testing()
-                self.testing_is_finished = True
+                + self.input_vector_size - 1 >= self.users_max_data_index[self.current_test_user]:
+            self.increment_user_id()
+            is_finished = self._check_is_finished(is_test, validation_number)
+            self._set_finished(is_finished)
+        return self.testing_is_finished
 
-    def increment_user_id_test(self):
-        if self.current_test_user == 20:
-            return 1
+    def _set_finished(self, increment_is_available):
+        if increment_is_available == 1:
+            print("test is finished !")
+            self.testing_is_finished = True
         else:
-            self.current_test_user += 1
-            return 0
+            pass
+        return self.testing_is_finished
 
     def increment_user_id(self):
-        if self.current_test_user == self.dataSize:
-            return 1
+        self.current_test_user += 1
+
+    def _check_is_finished(self, istest, validation_number):
+        if istest:
+            if self.current_test_user == self.data_size:
+                return 1
+            else:
+                return 0
         else:
-            self.current_test_user += 1
-            return 0
+            if self.current_test_user == validation_number:
+                return 1
+            else:
+                return 0
+
+    def test_function(self):
+        print(self.data_size)
+        print(self.current_test_user)

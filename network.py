@@ -1,0 +1,1 @@
+class Network:    def __init__(self):        passclass Rnn:    def __init__(self):        pass2

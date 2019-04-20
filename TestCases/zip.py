@@ -1,0 +1,1 @@
+import numpy as npfirst_array = np.zeros([4, 10])second_array = list([2,3,5,6])for i,j in zip(first_array,second_array):    print(i)    print(j)

@@ -1,6 +1,6 @@
 # import Rnn
-from feeding_network import BatchFeeder3D, TestBatchFeeder
-from RNN_Revised import RNNModel
+from feeders import BatchFeeder3D, TestBatchFeeder
+from previous_files.RNN_Revised import RNNModel
 import tensorflow as tf
 import numpy as np
 

@@ -1,9 +1,6 @@
-import Rnn
-from feeding_network import BatchFeeder, SameBatchFeeder, ExtendedBatchFeeder
-from Rnn import RnnWithHour, RnnWithMAE, RNNWithExactTime, \
-    SimpleRNNAgain, SimpleRNNWithTruncatedLoss
+from feeders import ExtendedBatchFeeder
+from previous_files.Rnn import SimpleRNNWithTruncatedLoss
 import tensorflow as tf
-import numpy as np
 
 # setting batch feeder ###
 # Batch Feeder is used to feed wrapped_panda_data to network,

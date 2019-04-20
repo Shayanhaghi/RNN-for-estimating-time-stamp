@@ -35,7 +35,7 @@ class RNNModel:
         self.log_output_session_length = tf.log(self.output_real_session_size)
         self.input_exact_time_hour = tf.placeholder(tf.int32, shape=(BATCH_SIZE, UNROLLED_SIZE, INPUT_VECTOR_SIZE))
         self.input_exact_time_day = tf.placeholder(tf.int32, shape=(BATCH_SIZE, UNROLLED_SIZE, INPUT_VECTOR_SIZE))
-        # self.input_exact_time_in_week = self.input_exact_time_day * 7 + self.input_exact_time_hour
+        # self.input_exact_time_in_week = self.exact_day * 7 + self.exact_hour
         # TODO next line should be changed @RNN TOO importanttttttt!!!!!!!!!
         self.exact_hour_in_week = self.input_exact_time_hour * tf.constant(24, tf.int32) + self.input_exact_time_day
 
@@ -71,8 +71,7 @@ class RNNModel:
             v1 = basic_cell.zero_state(BATCH_SIZE, tf.float32)
             state = tf.Variable(v1, trainable=False)
             sum_measure = tf.reduce_sum(state)
-            lstm_output, lstm_state = tf.nn.dynamic_rnn(cell=basic_cell,
-                                                        inputs=lstm_input, initial_state=v1)
+            lstm_output, lstm_state = tf.nn.dynamic_rnn(cell=basic_cell, inputs=lstm_input, initial_state=v1)
             lstm_state_measure = tf.reduce_sum(lstm_state)
             return lstm_output, lstm_state, state, sum_measure, lstm_state_measure
 
@@ -125,9 +124,9 @@ class RNNModel:
     def set_cost(self, time_prediction, number_prediction, name="cost"):
         with tf.name_scope(name):
             # l1 = tf.losses.mean_squared_error(tf.expand_dims(self.output_time_real, -1), time_prediction)
-            # l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.output_real_time, -1), time_prediction, name="loss1",
+            # l1 = tf.nn.log_poisson_loss(tf.expand_dims(self.time_target, -1), time_prediction, name="loss1",
             #                             compute_full_loss=True)
-            # l2 = tf.nn.log_poisson_loss(self.output_real_session_size, number_prediction, name="loss2",
+            # l2 = tf.nn.log_poisson_loss(self.session_length_target, number_prediction, name="loss2",
             #                             compute_full_loss=True)
             tf.summary.histogram("time of real outputs", self.output_real_time)
             tf.summary.histogram("Number of count in a session", self.output_real_session_size)

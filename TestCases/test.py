@@ -1,4 +1,4 @@
-from feeding_network import BatchFeeder
+from feeders import BatchFeeder
 import numpy as np
 import tensorflow as tf
 

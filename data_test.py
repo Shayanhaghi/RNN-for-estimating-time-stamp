@@ -1,0 +1,1 @@
+from better_rnn import RNNModelx = {3: 6, 5: 8}print(x)

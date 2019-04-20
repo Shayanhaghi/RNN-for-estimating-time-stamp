@@ -391,3 +391,4 @@ if __name__ == "__main__":
     CURRENT_OUTPUT_NAME = 'WithSessionTime1.pk'
     with open(CURRENT_OUTPUT_NAME, 'wb') as fi:
         pickle.dump(output, fi)
+

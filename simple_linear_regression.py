@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from feeding_network import BatchFeeder
+from feeders import BatchFeeder
 from sklearn.metrics import mean_absolute_error
 from sklearn.linear_model import HuberRegressor
 
